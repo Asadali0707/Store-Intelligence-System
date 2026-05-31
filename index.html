@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Purplle Store Intelligence — Brigade Road, Bangalore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --accent: #c8a8ff;
+    --accent2: #ff6eb4;
+    --accent3: #6ee7ff;
+    --accent4: #ffe26e;
+    --text: #f0eeff;
+    --muted: #7a7a99;
+    --green: #5dffa0;
+    --red: #ff6e6e;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:0; opacity:0.4;
+  }
+
+  /* GRID LINES */
+  body::after {
+    content:'';
+    position:fixed; inset:0;
+    background-image: linear-gradient(rgba(200,168,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,168,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events:none; z-index:0;
+  }
+
+  .wrapper { position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:32px 24px; }
+
+  /* HEADER */
+  header {
+    display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;
+    padding-bottom:32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom:32px;
+  }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .logo-mark {
+    width:44px; height:44px; border-radius:10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-head); font-weight:800; font-size:18px; color:#fff;
+    box-shadow: 0 0 32px rgba(200,168,255,0.4);
+  }
+  .brand-text h1 {
+    font-family: var(--font-head); font-size:20px; font-weight:700; letter-spacing:-0.3px;
+  }
+  .brand-text p { font-size:11px; color:var(--muted); margin-top:2px; }
+  .header-meta { text-align:right; }
+  .live-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    background: rgba(93,255,160,0.1); border:1px solid rgba(93,255,160,0.3);
+    color:var(--green); border-radius:20px; padding:4px 12px; font-size:11px;
+    margin-bottom:6px;
+  }
+  .live-dot { width:6px; height:6px; background:var(--green); border-radius:50%; animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .header-date { font-size:11px; color:var(--muted); }
+
+  /* NAV TABS */
+  .tabs {
+    display:flex; gap:4px; background:var(--surface); padding:4px; border-radius:12px;
+    margin-bottom:32px; border:1px solid var(--border); overflow-x:auto;
+  }
+  .tab {
+    padding:8px 20px; border-radius:8px; font-family:var(--font-mono); font-size:12px;
+    cursor:pointer; border:none; background:transparent; color:var(--muted);
+    white-space:nowrap; transition:all 0.2s;
+  }
+  .tab:hover { color:var(--text); }
+  .tab.active {
+    background:var(--card); color:var(--accent); box-shadow:0 0 12px rgba(200,168,255,0.15);
+    border:1px solid rgba(200,168,255,0.2);
+  }
+
+  /* PANELS */
+  .panel { display:none; animation:fadeIn 0.3s ease; }
+  .panel.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:none;} }
+
+  /* KPI GRID */
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:28px; }
+  .kpi {
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:20px; position:relative; overflow:hidden; transition:border-color 0.2s;
+  }
+  .kpi:hover { border-color:rgba(200,168,255,0.3); }
+  .kpi::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .kpi-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; }
+  .kpi-value { font-family:var(--font-head); font-size:32px; font-weight:800; line-height:1; }
+  .kpi-sub { font-size:11px; color:var(--muted); margin-top:6px; }
+  .kpi-badge {
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:10px; padding:2px 8px; border-radius:20px; margin-top:8px;
+  }
+  .kpi-badge.up { background:rgba(93,255,160,0.1); color:var(--green); }
+  .kpi-badge.down { background:rgba(255,110,110,0.1); color:var(--red); }
+
+  /* CHARTS ROW */
+  .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+  .charts-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:28px; }
+  @media(max-width:900px) {
+    .charts-row, .charts-row-3 { grid-template-columns:1fr; }
+  }
+  .chart-card {
+    background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px;
+  }
+  .chart-title { font-family:var(--font-head); font-size:13px; font-weight:700; margin-bottom:4px; }
+  .chart-sub { font-size:10px; color:var(--muted); margin-bottom:16px; }
+  canvas { max-height:220px; }
+
+  /* TABLE */
+  .table-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:28px; overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { font-family:var(--font-head); font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:8px 12px; text-align:left; border-bottom:1px solid var(--border); }
+  td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.03); }
+  tr:hover td { background:rgba(255,255,255,0.02); }
+  .pill {
+    display:inline-block; padding:2px 10px; border-radius:20px; font-size:10px;
+  }
+  .pill-purple { background:rgba(200,168,255,0.15); color:var(--accent); }
+  .pill-pink { background:rgba(255,110,180,0.15); color:var(--accent2); }
+  .pill-blue { background:rgba(110,231,255,0.15); color:var(--accent3); }
+  .pill-yellow { background:rgba(255,226,110,0.15); color:var(--accent4); }
+  .pill-green { background:rgba(93,255,160,0.15); color:var(--green); }
+
+  /* FUNNEL */
+  .funnel-wrap { display:flex; flex-direction:column; gap:8px; }
+  .funnel-step { display:flex; align-items:center; gap:12px; }
+  .funnel-bar-wrap { flex:1; background:rgba(255,255,255,0.05); border-radius:4px; height:32px; overflow:hidden; }
+  .funnel-bar { height:100%; border-radius:4px; display:flex; align-items:center; padding-left:12px; font-size:11px; font-weight:600; transition:width 1.2s ease; }
+  .funnel-label { font-size:11px; color:var(--muted); width:120px; text-align:right; }
+  .funnel-val { font-family:var(--font-head); font-size:13px; font-weight:700; width:60px; }
+
+  /* ANOMALY */
+  .anomaly-list { display:flex; flex-direction:column; gap:10px; }
+  .anomaly-item {
+    display:flex; gap:12px; align-items:flex-start;
+    background:rgba(255,255,255,0.02); border:1px solid var(--border);
+    border-radius:10px; padding:14px; transition:border-color 0.2s;
+  }
+  .anomaly-item:hover { border-color:rgba(255,110,110,0.3); }
+  .anomaly-icon { font-size:18px; margin-top:1px; }
+  .anomaly-body h4 { font-family:var(--font-head); font-size:13px; margin-bottom:4px; }
+  .anomaly-body p { font-size:11px; color:var(--muted); line-height:1.5; }
+  .anomaly-severity {
+    margin-left:auto; padding:2px 10px; border-radius:20px; font-size:10px; height:fit-content;
+  }
+  .sev-high { background:rgba(255,110,110,0.15); color:var(--red); }
+  .sev-med { background:rgba(255,226,110,0.15); color:var(--accent4); }
+  .sev-low { background:rgba(93,255,160,0.15); color:var(--green); }
+
+  /* API DOCS */
+  .api-endpoint {
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    margin-bottom:16px; overflow:hidden;
+  }
+  .api-header {
+    display:flex; align-items:center; gap:12px; padding:14px 16px;
+    border-bottom:1px solid var(--border); cursor:pointer;
+    transition:background 0.2s;
+  }
+  .api-header:hover { background:rgba(255,255,255,0.02); }
+  .method { padding:3px 10px; border-radius:6px; font-size:11px; font-weight:700; }
+  .get { background:rgba(93,255,160,0.2); color:var(--green); }
+  .api-path { font-family:var(--font-mono); font-size:13px; color:var(--accent); }
+  .api-desc { font-size:11px; color:var(--muted); margin-left:auto; }
+  .api-body { padding:16px; }
+  .code-block {
+    background:#0d0d14; border:1px solid var(--border); border-radius:8px;
+    padding:14px; font-size:12px; overflow-x:auto; line-height:1.6;
+    color:#c8c8e8; white-space:pre;
+  }
+  .json-key { color:var(--accent3); }
+  .json-val { color:var(--accent4); }
+  .json-str { color:var(--green); }
+  .json-num { color:var(--accent2); }
+
+  /* SYSTEM */
+  .arch-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-bottom:28px; }
+  .arch-card {
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:20px; text-align:center;
+  }
+  .arch-icon { font-size:32px; margin-bottom:12px; }
+  .arch-card h3 { font-family:var(--font-head); font-size:14px; margin-bottom:6px; }
+  .arch-card p { font-size:11px; color:var(--muted); line-height:1.5; }
+  .flow-arrow {
+    display:flex; align-items:center; justify-content:center;
+    color:var(--muted); font-size:20px; margin:8px 0;
+  }
+
+  .section-title {
+    font-family:var(--font-head); font-size:16px; font-weight:700;
+    margin-bottom:16px; display:flex; align-items:center; gap:8px;
+  }
+  .section-title span { color:var(--accent); }
+
+  /* HEATMAP */
+  .heatmap-grid {
+    display:grid; grid-template-columns:repeat(10,1fr); gap:4px;
+  }
+  .heatmap-cell {
+    aspect-ratio:1; border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; color:rgba(255,255,255,0.6); font-family:var(--font-mono);
+    transition:transform 0.15s;
+    cursor:default;
+  }
+  .heatmap-cell:hover { transform:scale(1.15); z-index:2; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+  @media(max-width:700px){ .two-col { grid-template-columns:1fr; } }
+
+  .stat-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .stat-row:last-child { border-bottom:none; }
+  .stat-row-label { font-size:12px; color:var(--muted); }
+  .stat-row-val { font-family:var(--font-head); font-size:14px; font-weight:700; }
+
+  footer {
+    text-align:center; padding:32px 0 16px;
+    font-size:10px; color:var(--muted); border-top:1px solid var(--border); margin-top:32px;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="logo-mark">P</div>
+      <div class="brand-text">
+        <h1>Store Intelligence</h1>
+        <p>Brigade Road · Bangalore · ST1008</p>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="live-badge"><span class="live-dot"></span> Live Dashboard</div>
+      <div class="header-date">10 April 2026 · 12:15 – 21:40 hrs</div>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview')">📊 Overview</button>
+    <button class="tab" onclick="switchTab('funnel')">🔻 Conversion Funnel</button>
+    <button class="tab" onclick="switchTab('traffic')">🚶 Traffic & Heatmap</button>
+    <button class="tab" onclick="switchTab('sales')">💄 Sales Intel</button>
+    <button class="tab" onclick="switchTab('anomalies')">⚠️ Anomalies</button>
+    <button class="tab" onclick="switchTab('api')">⚡ API Docs</button>
+    <button class="tab" onclick="switchTab('system')">🏗️ System Design</button>
+  </div>
+
+  <!-- ===== OVERVIEW ===== -->
+  <div id="panel-overview" class="panel active">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Store Footfall</div>
+        <div class="kpi-value" style="color:var(--accent)">284</div>
+        <div class="kpi-sub">Unique visitors detected</div>
+        <div class="kpi-badge up">↑ 12% vs last week</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Conversion Rate</div>
+        <div class="kpi-value" style="color:var(--accent2)">8.5%</div>
+        <div class="kpi-sub">24 orders / 284 entries</div>
+        <div class="kpi-badge up">↑ 1.2pp vs last week</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Gross Revenue</div>
+        <div class="kpi-value" style="color:var(--accent3)">₹44.9K</div>
+        <div class="kpi-sub">GMV for the day</div>
+        <div class="kpi-badge up">↑ 8.7% vs last week</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg Basket Size</div>
+        <div class="kpi-value" style="color:var(--accent4)">₹1,872</div>
+        <div class="kpi-sub">Per transaction</div>
+        <div class="kpi-badge up">↑ 5.3%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg Dwell Time</div>
+        <div class="kpi-value" style="color:var(--green)">14.2m</div>
+        <div class="kpi-sub">Minutes per visitor</div>
+        <div class="kpi-badge up">↑ 2.1m</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Abandonment Rate</div>
+        <div class="kpi-value" style="color:var(--red)">91.5%</div>
+        <div class="kpi-sub">Visitors without purchase</div>
+        <div class="kpi-badge down">↓ needs attention</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Hourly Footfall vs Sales</div>
+        <div class="chart-sub">Entry count and transactions by hour</div>
+        <canvas id="hourlyChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Revenue by Category</div>
+        <div class="chart-sub">GMV split across departments</div>
+        <canvas id="catChart"></canvas>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="chart-title">Brand Performance</div>
+        <div class="chart-sub">Top 8 brands by units sold</div>
+        <canvas id="brandChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Salesperson Contribution</div>
+        <div class="chart-sub">Orders handled per staff</div>
+        <canvas id="staffChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FUNNEL ===== -->
+  <div id="panel-funnel" class="panel">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Overall Conversion</div>
+        <div class="kpi-value" style="color:var(--accent2)">8.5%</div>
+        <div class="kpi-sub">Entry → Purchase</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Engagement Rate</div>
+        <div class="kpi-value" style="color:var(--accent)">42%</div>
+        <div class="kpi-sub">Visitors who browsed &gt;5 min</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Coupon Usage</div>
+        <div class="kpi-value" style="color:var(--accent3)">33%</div>
+        <div class="kpi-sub">Orders with discounts applied</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Multi-item Rate</div>
+        <div class="kpi-value" style="color:var(--green)">67%</div>
+        <div class="kpi-sub">Customers with 2+ items</div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:28px">
+      <div class="chart-title">Customer Journey Funnel</div>
+      <div class="chart-sub">Session-based, no double-counting applied</div>
+      <br>
+      <div class="funnel-wrap" id="funnelViz"></div>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="chart-title">Conversion by Hour</div>
+        <div class="chart-sub">Purchase rate vs peak traffic hours</div>
+        <canvas id="convHourChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Offer Effectiveness</div>
+        <div class="chart-sub">Revenue generated per offer type</div>
+        <canvas id="offerChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TRAFFIC ===== -->
+  <div id="panel-traffic" class="panel">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Peak Hour</div>
+        <div class="kpi-value" style="color:var(--accent)">19:00</div>
+        <div class="kpi-sub">Highest footfall 7–8 PM</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Re-entry Events</div>
+        <div class="kpi-value" style="color:var(--accent4)">18</div>
+        <div class="kpi-sub">Customers re-entering store</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Staff Movements</div>
+        <div class="kpi-value" style="color:var(--muted)">47</div>
+        <div class="kpi-sub">Excluded from visitor count</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Group Entries</div>
+        <div class="kpi-value" style="color:var(--accent3)">31</div>
+        <div class="kpi-sub">2+ persons together</div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:28px">
+      <div class="chart-title">Store Zone Heatmap</div>
+      <div class="chart-sub">Relative footfall intensity across 10×6 grid zones</div>
+      <br>
+      <div class="heatmap-grid" id="heatmapGrid" style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px;"></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:10px;color:var(--muted);">
+        <span>Low</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#1a1a26,#c8a8ff)"></div>
+        <span>High</span>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Entry vs Exit Over Time</div>
+        <div class="chart-sub">30-minute intervals throughout the day</div>
+        <canvas id="entryExitChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Dwell Time Distribution</div>
+        <div class="chart-sub">Minutes spent in store per visit</div>
+        <canvas id="dwellChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SALES ===== -->
+  <div id="panel-sales" class="panel">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Net Revenue (NMV)</div>
+        <div class="kpi-value" style="color:var(--green)">₹34.8K</div>
+        <div class="kpi-sub">After all discounts</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total Discount</div>
+        <div class="kpi-value" style="color:var(--red)">₹10.1K</div>
+        <div class="kpi-sub">22.5% of GMV</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Units Sold</div>
+        <div class="kpi-value" style="color:var(--accent)">101</div>
+        <div class="kpi-sub">Line items</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Top Category</div>
+        <div class="kpi-value" style="color:var(--accent2);font-size:22px">Makeup</div>
+        <div class="kpi-sub">54 units · ₹28.4K GMV</div>
+      </div>
+    </div>
+
+    <div class="section-title">Transaction Log <span>(April 10, 2026)</span></div>
+    <div class="table-card">
+      <table id="salesTable">
+        <thead>
+          <tr>
+            <th>Invoice</th><th>Time</th><th>Customer</th><th>Items</th>
+            <th>Category</th><th>GMV (₹)</th><th>Salesperson</th><th>Offer</th>
+          </tr>
+        </thead>
+        <tbody id="salesTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="chart-title">Sub-category Breakdown</div>
+        <div class="chart-sub">Units sold by product type</div>
+        <canvas id="subCatChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">GMV Timeline</div>
+        <div class="chart-sub">Cumulative revenue through the day</div>
+        <canvas id="cumulChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ANOMALIES ===== -->
+  <div id="panel-anomalies" class="panel">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Anomalies Detected</div>
+        <div class="kpi-value" style="color:var(--red)">7</div>
+        <div class="kpi-sub">Rule-based + statistical</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">High Severity</div>
+        <div class="kpi-value" style="color:var(--red)">2</div>
+        <div class="kpi-sub">Immediate attention needed</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Medium Severity</div>
+        <div class="kpi-value" style="color:var(--accent4)">3</div>
+        <div class="kpi-sub">Monitor closely</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Low Severity</div>
+        <div class="kpi-value" style="color:var(--green)">2</div>
+        <div class="kpi-sub">Informational</div>
+      </div>
+    </div>
+
+    <div class="section-title">Detected Anomalies</div>
+    <div class="anomaly-list" id="anomalyList"></div>
+
+    <br>
+    <div class="chart-card">
+      <div class="chart-title">Anomaly Timeline</div>
+      <div class="chart-sub">Events flagged across the day</div>
+      <canvas id="anomalyChart" style="max-height:160px"></canvas>
+    </div>
+  </div>
+
+  <!-- ===== API DOCS ===== -->
+  <div id="panel-api" class="panel">
+    <div class="section-title">Live API Endpoints <span>(try them below)</span></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px;">Base URL: <code style="color:var(--accent)">https://your-username.github.io/store-intelligence/api/</code></p>
+
+    <div id="apiEndpoints"></div>
+  </div>
+
+  <!-- ===== SYSTEM ===== -->
+  <div id="panel-system" class="panel">
+    <div class="section-title">System Architecture</div>
+
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="arch-icon">📹</div>
+        <h3>CCTV Ingestion</h3>
+        <p>OpenCV-based video reader processes frames at 5 FPS. Supports RTSP streams and MP4 files. Concurrent camera feeds via threading.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">🤖</div>
+        <h3>Person Detection</h3>
+        <p>YOLOv8n (nano) for real-time detection + ByteTrack for multi-object tracking. Runs on CPU with ONNX for portability.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">🔁</div>
+        <h3>Re-entry Logic</h3>
+        <p>Track ID + appearance embedding (ReID) + 5-minute cooldown window to deduplicate re-entrants. Staff excluded via zone-based rules.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">📤</div>
+        <h3>Event Streaming</h3>
+        <p>Structured JSON events written to Redis Streams. Schema: {event_id, track_id, event_type, timestamp, zone, confidence}.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">📊</div>
+        <h3>Analytics Engine</h3>
+        <p>Session aggregation, funnel computation, and anomaly detection run on event stream. SQLite for persistence, in-memory for speed.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-icon">🌐</div>
+        <h3>REST API</h3>
+        <p>FastAPI server exposing /metrics, /funnel, /events, /anomalies, /heatmap. CORS-enabled. Response cached 30s.</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="chart-title">Tech Stack</div>
+        <div class="chart-sub">Core dependencies</div>
+        <br>
+        <div class="stat-row"><span class="stat-row-label">Vision</span><span class="stat-row-val">YOLOv8 + ByteTrack</span></div>
+        <div class="stat-row"><span class="stat-row-label">Backend</span><span class="stat-row-val">FastAPI + Python 3.11</span></div>
+        <div class="stat-row"><span class="stat-row-label">Streaming</span><span class="stat-row-val">Redis Streams</span></div>
+        <div class="stat-row"><span class="stat-row-label">Storage</span><span class="stat-row-val">SQLite + Redis</span></div>
+        <div class="stat-row"><span class="stat-row-label">Deployment</span><span class="stat-row-val">Docker Compose</span></div>
+        <div class="stat-row"><span class="stat-row-label">Observability</span><span class="stat-row-val">Prometheus + Grafana</span></div>
+        <div class="stat-row"><span class="stat-row-label">Frontend</span><span class="stat-row-val">Vanilla HTML/JS/Chart.js</span></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Design Choices</div>
+        <div class="chart-sub">Key trade-offs made</div>
+        <br>
+        <div class="stat-row"><span class="stat-row-label">YOLOv8n vs v8x</span><span class="stat-row-val">Speed > Accuracy</span></div>
+        <div class="stat-row"><span class="stat-row-label">SQLite vs Postgres</span><span class="stat-row-val">Portability</span></div>
+        <div class="stat-row"><span class="stat-row-label">5 FPS sampling</span><span class="stat-row-val">CPU-friendly</span></div>
+        <div class="stat-row"><span class="stat-row-label">Redis Streams</span><span class="stat-row-val">Replay-able events</span></div>
+        <div class="stat-row"><span class="stat-row-label">Rule-based anomaly</span><span class="stat-row-val">Explainability</span></div>
+        <div class="stat-row"><span class="stat-row-label">Static frontend</span><span class="stat-row-val">Zero infra for demo</span></div>
+        <div class="stat-row"><span class="stat-row-label">Single docker-compose</span><span class="stat-row-val">1-command deploy</span></div>
+      </div>
+    </div>
+
+    <div class="section-title">Event Schema</div>
+    <div class="chart-card">
+      <div class="chart-sub">Sample event emitted by detection pipeline</div>
+      <br>
+      <div class="code-block"><span class="json-key">"event_id"</span>: <span class="json-str">"evt_20260410_165536_0042"</span>,
+<span class="json-key">"track_id"</span>:   <span class="json-num">42</span>,
+<span class="json-key">"event_type"</span>: <span class="json-str">"ENTRY"</span>,          <span style="color:var(--muted)">// ENTRY | EXIT | REENTRY | DWELL</span>
+<span class="json-key">"timestamp"</span>:  <span class="json-str">"2026-04-10T16:55:36Z"</span>,
+<span class="json-key">"zone"</span>:        <span class="json-str">"ENTRANCE_LEFT"</span>,
+<span class="json-key">"confidence"</span>: <span class="json-num">0.93</span>,
+<span class="json-key">"is_staff"</span>:   <span class="json-val">false</span>,
+<span class="json-key">"group_id"</span>:   <span class="json-val">null</span>,
+<span class="json-key">"camera_id"</span>:  <span class="json-str">"CAM_01"</span></div>
+    </div>
+  </div>
+
+  <footer>
+    Purplle Store Intelligence System · Brigade Road, Bangalore · Built for UpGrad Placements Challenge April 2026
+  </footer>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const HOURS = ['12','13','14','15','16','17','18','19','20','21'];
+const footfall = [18, 24, 31, 22, 38, 45, 52, 64, 48, 29];  // simulated, peaked at 7PM
+const transactions = [1, 2, 2, 1, 3, 3, 4, 5, 2, 1];
+
+const salesData = [
+  {inv:'KAP0001358',time:'16:55',cust:'Guest',items:1,cat:'Bath & Body',gmv:400,staff:'kasthuri v',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001399',time:'19:21',cust:'sagar',items:3,cat:'Skin',gmv:697,staff:'Zufishan Khazra',offer:'Buy 2 Get 2'},
+  {inv:'KAP0001353',time:'16:45',cust:'Guest',items:2,cat:'Makeup',gmv:1598,staff:'Zufishan Khazra',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001384',time:'18:41',cust:'Nivya Sara',items:3,cat:'Skin',gmv:1809,staff:'Shashikala',offer:'Coupon MAR2620'},
+  {inv:'KAP0001393',time:'19:02',cust:'rupa',items:1,cat:'Makeup',gmv:699,staff:'Naziya Begum',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001333',time:'13:41',cust:'madeeha',items:3,cat:'Skin',gmv:297,staff:'Shashikala',offer:'Buy 2 Get 2'},
+  {inv:'KAP0001408',time:'19:54',cust:'wilma',items:4,cat:'Skin',gmv:396,staff:'Priya v',offer:'Buy 2 Get 2'},
+  {inv:'KAP0001324',time:'12:42',cust:'thanu',items:5,cat:'Makeup',gmv:1598,staff:'Zufishan Khazra',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001369',time:'17:55',cust:'monalisa',items:1,cat:'Makeup',gmv:299,staff:'Priya v',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001321',time:'12:15',cust:'sugitha',items:1,cat:'Makeup',gmv:399,staff:'kasthuri v',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001337',time:'14:23',cust:'Bharti Bajaj',items:1,cat:'Makeup',gmv:225,staff:'Shashikala',offer:'None'},
+  {inv:'KAP0001336',time:'13:55',cust:'sera',items:1,cat:'Bath',gmv:2,staff:'—',offer:'None'},
+  {inv:'KAP0001418',time:'20:25',cust:'SAVIA',items:1,cat:'Makeup',gmv:299,staff:'Zufishan Khazra',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001401',time:'19:33',cust:'Guest',items:1,cat:'Personal Care',gmv:249,staff:'Naziya Begum',offer:'None'},
+  {inv:'KAP0001408b',time:'20:10',cust:'wilma',items:2,cat:'Skin',gmv:498,staff:'Priya v',offer:'None'},
+  {inv:'KAP0001415',time:'20:15',cust:'kavitha',items:3,cat:'Makeup',gmv:2197,staff:'kasthuri v',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001420',time:'21:05',cust:'preethi',items:2,cat:'Skin',gmv:1599,staff:'Zufishan Khazra',offer:'None'},
+  {inv:'KAP0001422',time:'21:20',cust:'Guest',items:1,cat:'Makeup',gmv:849,staff:'kasthuri v',offer:'None'},
+  {inv:'KAP0001430',time:'21:39',cust:'divya',items:4,cat:'Makeup',gmv:2396,staff:'Zufishan Khazra',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001341',time:'15:10',cust:'priya k',items:2,cat:'Hair',gmv:798,staff:'Priya v',offer:'None'},
+  {inv:'KAP0001350',time:'15:45',cust:'Guest',items:1,cat:'Makeup',gmv:549,staff:'Naziya Begum',offer:'None'},
+  {inv:'KAP0001360',time:'17:10',cust:'nisha',items:2,cat:'Makeup',gmv:1248,staff:'kasthuri v',offer:'None'},
+  {inv:'KAP0001375',time:'18:20',cust:'amrita',items:3,cat:'Skin',gmv:2397,staff:'Shashikala',offer:'Buy 2 Get 1'},
+  {inv:'KAP0001390',time:'19:10',cust:'pooja',items:2,cat:'Makeup',gmv:1148,staff:'Zufishan Khazra',offer:'None'},
+];
+
+const anomalies = [
+  {icon:'⚡',title:'Rapid Sequential Transactions',desc:'5 transactions within 18 minutes (19:02–19:21). Possible bundled billing or rush-hour compression. Review per-item receipts.',sev:'sev-high',label:'HIGH'},
+  {icon:'🔄',title:'High Re-entry Rate at Entrance',desc:'18 re-entry events detected, 6.3% of total footfall. Above the 4% threshold. Could indicate indecisive shoppers or friends waiting outside.',sev:'sev-high',label:'HIGH'},
+  {icon:'👥',title:'Staff-Zone Overlap During Peak',desc:'3 staff members detected in customer aisles 18:30–19:30. May inflate visitor count if not filtered. ReID cooldown applied.',sev:'sev-med',label:'MEDIUM'},
+  {icon:'💰',title:'Single Large Discount Event',desc:'Order KAP0001384 applied ₹350 coupon (MAR2620) — highest single discount of the day. 19.5% off. Verify against promotion policy.',sev:'sev-med',label:'MEDIUM'},
+  {icon:'📉',title:'Zero Revenue Window 15:00–16:00',desc:'No transactions recorded in the 15:00–16:00 hour despite 22 footfall entries. Possible POS downtime or high browse-only traffic.',sev:'sev-med',label:'MEDIUM'},
+  {icon:'🛍️',title:'GWP Items at ₹1 Pricing',desc:'Purplle GWP items logged at ₹1 GMV. 4 such events across orders. Expected behavior for gifting SKUs — flagged for confirmation.',sev:'sev-low',label:'LOW'},
+  {icon:'⏰',title:'Late-Hour Traffic Spike',desc:'29 visitors detected 20:00–21:40, above 18-visitor daily average per hour. Suggests a marketing event or closing-hour promotion effect.',sev:'sev-low',label:'LOW'},
+];
+
+const apiEndpoints = [
+  {method:'GET',path:'/metrics',desc:'Store-level KPIs',body:{
+    footfall:284,conversion_rate:0.085,gmv:44920,nmv:34831,avg_basket:1872,avg_dwell_minutes:14.2,
+    peak_hour:'19:00',total_transactions:24,anomaly_count:7,store_id:'ST1008',date:'2026-04-10'
+  }},
+  {method:'GET',path:'/funnel',desc:'Conversion funnel',body:{
+    steps:[
+      {stage:'Store Entry',count:284,pct:100},
+      {stage:'Zone Engagement',count:119,pct:41.9},
+      {stage:'Product Interaction',count:72,pct:25.4},
+      {stage:'Checkout Initiated',count:31,pct:10.9},
+      {stage:'Purchase Completed',count:24,pct:8.5}
+    ],session_based:true,double_counting:false
+  }},
+  {method:'GET',path:'/events',desc:'Recent detection events',body:{
+    events:[
+      {event_id:'evt_20260410_165536_0042',track_id:42,event_type:'ENTRY',timestamp:'2026-04-10T16:55:36Z',zone:'ENTRANCE_LEFT',confidence:0.93,is_staff:false},
+      {event_id:'evt_20260410_165538_0043',track_id:43,event_type:'ENTRY',timestamp:'2026-04-10T16:55:38Z',zone:'ENTRANCE_RIGHT',confidence:0.88,is_staff:false},
+    ],total:284,page:1,page_size:50
+  }},
+  {method:'GET',path:'/anomalies',desc:'Flagged anomalies',body:{
+    anomalies:[
+      {id:'ANO_001',type:'RAPID_TRANSACTIONS',severity:'HIGH',timestamp:'2026-04-10T19:21:00Z',description:'5 transactions in 18 minutes'},
+      {id:'ANO_002',type:'HIGH_REENTRY_RATE',severity:'HIGH',timestamp:'2026-04-10T18:30:00Z',description:'Re-entry rate 6.3%, above 4% threshold'},
+    ],total:7
+  }},
+  {method:'GET',path:'/heatmap',desc:'Zone-level heatmap',body:{
+    zones:[
+      {zone_id:'Z_01',label:'Entrance',intensity:0.95,visitors:184},
+      {zone_id:'Z_02',label:'Makeup Aisle',intensity:0.82,visitors:156},
+      {zone_id:'Z_03',label:'Skin Aisle',intensity:0.64,visitors:122},
+    ],grid_size:'10x6',store_id:'ST1008'
+  }},
+];
+
+// ─── CHART DEFAULTS ──────────────────────────────────────────────────────────
+Chart.defaults.color = '#7a7a99';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const gridColor = 'rgba(255,255,255,0.04)';
+
+function mkChart(id, config) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  return new Chart(ctx, config);
+}
+
+// ─── OVERVIEW CHARTS ────────────────────────────────────────────────────────
+mkChart('hourlyChart',{type:'bar',data:{
+  labels:HOURS.map(h=>h+':00'),
+  datasets:[
+    {label:'Footfall',data:footfall,backgroundColor:'rgba(200,168,255,0.3)',borderColor:'#c8a8ff',borderWidth:1,yAxisID:'y'},
+    {label:'Transactions',data:transactions,type:'line',borderColor:'#ff6eb4',pointBackgroundColor:'#ff6eb4',tension:0.4,yAxisID:'y1'},
+  ]
+},options:{responsive:true,interaction:{mode:'index'},plugins:{legend:{display:true}},scales:{
+  y:{grid:{color:gridColor},title:{display:true,text:'Visitors'}},
+  y1:{position:'right',grid:{display:false},title:{display:true,text:'Orders'}}
+}}});
+
+mkChart('catChart',{type:'doughnut',data:{
+  labels:['Makeup','Skin','Bath & Body','Hair','Personal Care'],
+  datasets:[{data:[28400,9800,4200,1800,720],backgroundColor:['#c8a8ff','#ff6eb4','#6ee7ff','#ffe26e','#5dffa0'],borderWidth:0,hoverOffset:8}]
+},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+
+mkChart('brandChart',{type:'bar',data:{
+  labels:['Faces Canada','Good Vibes','NY Bae','Purplle','DERMDOC','Carmesi','Alps G.','Maybelline'],
+  datasets:[{data:[32,14,10,10,6,3,3,3],backgroundColor:'rgba(110,231,255,0.25)',borderColor:'#6ee7ff',borderWidth:1}]
+},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor}},y:{grid:{color:gridColor}}}}});
+
+mkChart('staffChart',{type:'pie',data:{
+  labels:['Zufishan Khazra','kasthuri v','Priya v','Shashikala','Naziya Begum'],
+  datasets:[{data:[42,19,13,12,8],backgroundColor:['#c8a8ff','#ff6eb4','#6ee7ff','#ffe26e','#5dffa0'],borderWidth:0}]
+},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+
+// ─── FUNNEL ──────────────────────────────────────────────────────────────────
+const funnelSteps = [
+  {label:'Store Entry',val:284,pct:100,color:'#c8a8ff'},
+  {label:'Zone Engaged',val:119,pct:41.9,color:'#b490f0'},
+  {label:'Product Touch',val:72,pct:25.4,color:'#ff6eb4'},
+  {label:'Checkout Init.',val:31,pct:10.9,color:'#ffe26e'},
+  {label:'Purchase Done',val:24,pct:8.5,color:'#5dffa0'},
+];
+const fv = document.getElementById('funnelViz');
+if(fv) funnelSteps.forEach(s=>{
+  fv.innerHTML+=`<div class="funnel-step">
+    <div class="funnel-label">${s.label}</div>
+    <div class="funnel-bar-wrap">
+      <div class="funnel-bar" style="width:${s.pct}%;background:${s.color}22;border-left:3px solid ${s.color};">
+        <span>${s.pct}%</span>
+      </div>
+    </div>
+    <div class="funnel-val">${s.val}</div>
+  </div>`;
+});
+
+const convRates = [5.5,8.3,6.4,4.5,7.9,6.6,7.7,7.8,4.2,3.4];
+mkChart('convHourChart',{type:'line',data:{
+  labels:HOURS.map(h=>h+':00'),
+  datasets:[{label:'Conv%',data:convRates,borderColor:'#ffe26e',backgroundColor:'rgba(255,226,110,0.1)',tension:0.4,fill:true,pointBackgroundColor:'#ffe26e'}]
+},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor}},y:{grid:{color:gridColor},ticks:{callback:v=>v+'%'}}}}});
+
+mkChart('offerChart',{type:'bar',data:{
+  labels:['Buy 2 Get 1','Buy 2 Get 2','Coupon Code','No Offer'],
+  datasets:[{data:[18400,1782,1799,22939],backgroundColor:['rgba(200,168,255,0.4)','rgba(255,110,180,0.4)','rgba(255,226,110,0.4)','rgba(110,231,255,0.4)'],borderColor:['#c8a8ff','#ff6eb4','#ffe26e','#6ee7ff'],borderWidth:1}]
+},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor}},y:{grid:{color:gridColor},ticks:{callback:v=>'₹'+v.toLocaleString()}}}}});
+
+// ─── HEATMAP ─────────────────────────────────────────────────────────────────
+const hg = document.getElementById('heatmapGrid');
+if(hg){
+  // 10x6 = 60 cells; simulate intensity with zone labels
+  const zoneLabels=['ENT','MKP','SKN','HLT','HMO','CHKOUT','STR','BTH','HAIR','PRSC'];
+  const intensities=[95,82,64,55,48,71,30,42,38,45, 88,79,61,52,44,68,28,40,36,43,
+    75,65,55,48,38,58,22,35,30,38, 60,50,44,38,30,48,18,28,24,30,
+    48,38,35,28,22,38,12,20,18,22, 38,28,25,20,15,28,8,15,12,15];
+  for(let i=0;i<60;i++){
+    const v=intensities[i]||Math.round(Math.random()*50+20);
+    const alpha=v/100;
+    const cell=document.createElement('div');
+    cell.className='heatmap-cell';
+    cell.style.background=`rgba(200,168,255,${alpha*0.8})`;
+    cell.title=`Zone ${i+1}: ${v} visitors`;
+    cell.textContent=v;
+    hg.appendChild(cell);
+  }
+}
+
+const entryData=[9,13,18,14,22,28,34,42,38,22,31,24,19,28,35,44,32,20];
+const exitData= [4, 8,12,10,16,22,28,35,32,18,26,20,16,24,30,38,28,18];
+const timeLabels=['12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30'];
+mkChart('entryExitChart',{type:'line',data:{
+  labels:timeLabels,
+  datasets:[
+    {label:'Entries',data:entryData,borderColor:'#5dffa0',backgroundColor:'rgba(93,255,160,0.1)',tension:0.4,fill:true},
+    {label:'Exits',data:exitData,borderColor:'#ff6e6e',backgroundColor:'rgba(255,110,110,0.1)',tension:0.4,fill:true},
+  ]
+},options:{responsive:true,plugins:{legend:{display:true}},scales:{x:{grid:{color:gridColor},ticks:{maxRotation:45}},y:{grid:{color:gridColor}}}}});
+
+mkChart('dwellChart',{type:'bar',data:{
+  labels:['<2m','2-5m','5-10m','10-20m','20-30m','30m+'],
+  datasets:[{data:[38,72,84,56,24,10],backgroundColor:'rgba(255,110,180,0.3)',borderColor:'#ff6eb4',borderWidth:1}]
+},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor}},y:{grid:{color:gridColor}}}}});
+
+// ─── SALES TABLE ─────────────────────────────────────────────────────────────
+const tb=document.getElementById('salesTbody');
+if(tb) salesData.forEach(r=>{
+  const catColor={'Makeup':'pill-purple','Skin':'pill-pink','Bath & Body':'pill-blue','Hair':'pill-yellow','Bath':'pill-blue','Personal Care':'pill-green'}[r.cat]||'pill-purple';
+  tb.innerHTML+=`<tr>
+    <td><code style="font-size:10px">${r.inv}</code></td>
+    <td>${r.time}</td>
+    <td>${r.cust}</td>
+    <td style="text-align:center">${r.items}</td>
+    <td><span class="pill ${catColor}">${r.cat}</span></td>
+    <td style="font-family:var(--font-head);font-weight:700">₹${r.gmv.toLocaleString()}</td>
+    <td style="font-size:11px">${r.staff}</td>
+    <td style="font-size:10px;color:var(--muted)">${r.offer}</td>
+  </tr>`;
+});
+
+const subCats=['Lipstick','Lip Gloss','Blush','Concealer','Kajal','Lip Liner','Sheet Mask','Body Wash','Toner','Lip Balm','Brushes','Razor'];
+const subVals=[14,8,11,6,5,7,18,6,4,3,3,4];
+mkChart('subCatChart',{type:'bar',data:{
+  labels:subCats,
+  datasets:[{data:subVals,backgroundColor:'rgba(200,168,255,0.3)',borderColor:'#c8a8ff',borderWidth:1}]
+},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor}},y:{grid:{color:gridColor}}}}});
+
+// Cumulative GMV
+const hourlyGMV=[399,497,225,0,1998,2898,4206,8442,5490,3200];
+const cumul=[];let run=0;
+hourlyGMV.forEach(v=>{run+=v;cumul.push(run);});
+mkChart('cumulChart',{type:'line',data:{
+  labels:HOURS.map(h=>h+':00'),
+  datasets:[{label:'Cumulative GMV',data:cumul,borderColor:'#5dffa0',backgroundColor:'rgba(93,255,160,0.08)',tension:0.4,fill:true,pointBackgroundColor:'#5dffa0'}]
+},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor}},y:{grid:{color:gridColor},ticks:{callback:v=>'₹'+v.toLocaleString()}}}}});
+
+// ─── ANOMALIES ────────────────────────────────────────────────────────────────
+const al=document.getElementById('anomalyList');
+if(al) anomalies.forEach(a=>{
+  al.innerHTML+=`<div class="anomaly-item">
+    <div class="anomaly-icon">${a.icon}</div>
+    <div class="anomaly-body">
+      <h4>${a.title}</h4>
+      <p>${a.desc}</p>
+    </div>
+    <span class="anomaly-severity ${a.sev}">${a.label}</span>
+  </div>`;
+});
+
+mkChart('anomalyChart',{type:'scatter',data:{
+  datasets:[
+    {label:'HIGH',data:[{x:19.35,y:3},{x:18.5,y:3}],backgroundColor:'#ff6e6e',pointRadius:8},
+    {label:'MEDIUM',data:[{x:18.8,y:2},{x:18.7,y:2},{x:15.5,y:2}],backgroundColor:'#ffe26e',pointRadius:7},
+    {label:'LOW',data:[{x:14.2,y:1},{x:20.5,y:1}],backgroundColor:'#5dffa0',pointRadius:6},
+  ]
+},options:{responsive:true,plugins:{legend:{display:true}},scales:{
+  x:{grid:{color:gridColor},min:12,max:22,title:{display:true,text:'Hour of Day'}},
+  y:{grid:{color:gridColor},min:0,max:4,ticks:{stepSize:1,callback:v=>['','LOW','MEDIUM','HIGH',''][v]}}
+}}});
+
+// ─── API DOCS ─────────────────────────────────────────────────────────────────
+const ae=document.getElementById('apiEndpoints');
+if(ae) apiEndpoints.forEach(ep=>{
+  const bodyStr=JSON.stringify(ep.body,null,2)
+    .replace(/"([^"]+)":/g,'<span class="json-key">"$1"</span>:')
+    .replace(/: "([^"]+)"/g,': <span class="json-str">"$1"</span>')
+    .replace(/: ([\d.]+)/g,': <span class="json-num">$1</span>')
+    .replace(/: (true|false|null)/g,': <span class="json-val">$1</span>');
+  ae.innerHTML+=`<div class="api-endpoint">
+    <div class="api-header">
+      <span class="method get">${ep.method}</span>
+      <span class="api-path">${ep.path}</span>
+      <span class="api-desc">${ep.desc}</span>
+    </div>
+    <div class="api-body">
+      <div class="code-block">${bodyStr}</div>
+    </div>
+  </div>`;
+});
+
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['overview','funnel','traffic','sales','anomalies','api','system'][i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+}
+</script>
+</body>
+</html>
